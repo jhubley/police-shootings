@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+html,body{
+  margin:0;
+  font-family: monospace;
+}
+body{
+  padding:30px;
+}
+.counties {
+  fill: none;
+  stroke: none;
+}
+.counties path:hover{
+  fill: #FFF77D;
+}
+.states {
+  fill: none;
+  stroke: none;
+  stroke-linejoin: round;
+}
+.country{
+  fill: #eee;
+  stroke: none;
+  stroke-width:1;
+  stroke-linejoin: round;
+}
+#points{
+	width:100%;
+	height:100%;
+	position:absolute;
+  top: 0;
+  left:0;
+	z-index:100;
+}
+.tooltip {
+  position: absolute;
+  padding: 15px;
+  font: 12px sans-serif;
+  background: #fff;
+  color: #000;
+  border: 0px;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.8;
+  visibility: hidden;
+  z-index: 101;
+}
+.tooltip2{
+  position: relative;
+  float: right;
+  font-size: 12px;
+  z-index: 10000;
+  background: #fff;
+  padding:30px;
+  margin-top:-100px;
+}
+h1{
+  font-family: monospace;
+  font-weight: normal;
+  margin:0px;
+}
+a{
+  color: #007CCA;
+}
+</style>
+<!-- <h1>victims of police shootings in the US</h1> -->
+<svg width="960" height="600"></svg>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+<script>
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+var projection = d3.geoAlbersUsa()
+.scale([1285])
+
+.translate([width/2,height/2]); // just temporary
+
+var path = d3.geoPath()
+.projection(null);
+
+var x = d3.scaleLinear()
+    .domain([0, 100])
+    .rangeRound([600, 860]);
+
+
+    d3.queue()
+        .defer(d3.json, "https://d3js.org/us-10m.v1.json")
+        .await(ready);
+
+    function ready(error, us) {
+      if (error) throw error;
+
+      svg.append("g")
+          .attr("class", "counties")
+        .selectAll("path")
+        .data(topojson.feature(us, us.objects.counties).features)
+        .enter().append("path")
+          .attr("fill", '#fff')
+          .attr("d", path)
+
+      svg.append("path")
+          .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+          .attr("class", "states")
+          .attr("d", path);
+
+      svg.append("g")
+          .attr("class", "country")
+        .selectAll("path")
+        .data(topojson.feature(us, us.objects.nation).features)
+        .enter().append("path")
+          .attr("d", path)
+    }
+
+    d3.csv("../MPV.csv", function(error, dataset) {
+
+      var points = d3.select('svg').append('svg').attr('id','points')
+
+      points.selectAll("circle").data(dataset) //plotted 	locations on map
+    	.enter()
+    	.append("circle")
+    	.attr("cx", function(d) {return projection([d.Longitude,d.Latitude])[0]})
+    	.attr("cy", function(d) {return projection([d.Longitude,d.Latitude])[1]})
+    	.attr("class", function(d){
+        var charge = d.charges
+        if(charge.includes("Charged") || charge.includes("Sentenced")){return 'charged'}else{return 'not_charged'};
+      })
+      .attr("r",1.2)
+      .attr("r",function(d){
+        var charge = d.charges
+        if(charge.includes("Charged") || charge.includes("Sentenced")){return 2}else{return 1};
+      })
+      .attr('stroke','#ff0000')
+      .attr('stroke-opacity',.1)
+      .attr('stroke-width',function(d){
+          var charge = d.charges
+          if(charge.includes("Charged") || charge.includes("Sentenced")){return 15}else{return 0};
+      })
+      .style("fill", function(d){
+            return charged(d);
+        })
+      .on("mouseover", function(d) {
+        var tooltip_str = 'Victim:<br/>' + d.name + ", " + d.date + '<br/>' +
+        d.race + ', ' + d.age + ', ' + d.gender + '<br/><br/>Charges:<br/>' + d.charges
+        tooltip.html(tooltip_str)
+            .style("visibility", "visible");
+      })
+      .on("mousemove", function(d) {
+        tooltip.style("top", event.pageY - (tooltip.node().clientHeight + 5) + "px")
+            .style("left", event.pageX - (tooltip.node().clientWidth / 2.0) + "px");
+      })
+      .on("mouseout", function(d) {
+        points.selectAll('.month')
+            .classed('active', false)
+        tooltip.style("visibility", "hidden");
+      })
+
+      var tooltip = d3.select("body").append("div")
+              .attr("class", "tooltip");
+    });
+
+    function addCommas(x) {
+      var parts = x.toString().split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return parts.join('.');
+    }
+
+    function charged(d){
+      if (d.charges == "No known charges" || d.charges == "No Known Charges" || d.charges ==
+      "No" || d.charges == "NO" || d.charges ==
+      "Charged, Acquitted" || d.charges ==
+      "Civil Citation, But No Criminal Charges" || d.charges ==
+      "Charged, Charges Tossed" || d.charges ==
+      "Charged with perjury, Charges dropped" || d.charges ==
+      "Charged, Mistrial" || d.charges ==
+      "Charged, Mistrial, Plead Guilty to Civil Rights Charges"){return "#999"}
+      else if (d.charges == "Charged with a crime" || d.charges == "Charged, Convicted, Sentenced to 40 years in prison" || d.charges ==
+      "Charged, Convicted, Sentenced to 5 years in prison" || d.charges == "Charged, Convicted, Sentenced to 3 months in jail" || d.charges ==
+      "Charged, Convicted, Sentenced to 30 years in prison" || d.charges == "Charged, Convicted" || d.charges ==
+      "Charged, Convicted, Sentenced to 2.5 years in prison" || d.charges == "Charged, Convicted, Sentenced to 4 years" || d.charges ==
+      "Charged, Convicted (two officers) of cruelty to an inmate, public records fraud, and perjury. Sentenced to one month in jail and three years’ probation" || d.charges ==
+      "Charged, Convicted, Sentenced to 5 years probation." || d.charges == "Charged, Convicted, Sentenced to 20 years in prison" || d.charges ==
+      "Charged, Convicted, Sentenced to 16 years in prison" || d.charges == "Charged, Convicted, Sentenced to 1 year in prison" || d.charges ==
+      "Charged, Convicted, Sentenced to 4 years in prison, 3 years probation" || d.charges == "Charged, Convicted, Sentenced to life in prison without parole, plus 16 years" || d.charges ==
+      "Charged, Convicted, Sentenced to life in prison" || d.charges == "Charged, Convicted, Sentenced to Life in Prison" || d.charges ==
+      "Charged, Convicted, Sentenced to 7 years in prison" || d.charges == "Charged, Convicted, Sentenced to 3 years probation " || d.charges ==
+      "Charged, Convicted of murder, Sentenced to 30 years in prison" || d.charges ==
+      "Charged, Convicted of criminally negligent homicide, Sentenced to 1-3 years in prison" || d.charges ==
+      "Charged, Convicted, Sentenced to 120 days in jail, 3 years probation" || d.charges ==
+      "Charged, Convicted of involuntary manslaughter, DUI and recklessly endangering another person, Sentenced to 2-7 years" || d.charges ==
+      "Charged, Convicted, Sentenced to 50 years" || d.charges ==
+      "Charged, Convicted, Sentenced to 1 year in jail, 3 years suspended" || d.charges ==
+      "Charged, Convicted, Sentenced to 18 months" || d.charges ==
+      "Charged, Convicted, Sentenced to 6 years"){return "#ff0000"}else{return "#333"}
+    }
+</script>
