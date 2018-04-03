@@ -16,10 +16,12 @@
   <br/><br/>
   <div id="chargesg"></div>
   <div id="gender"></div>
+  <br/><br/><br/>
+  <div id="chargest"></div>
 
   <script>
 
-  d3.csv("MPV.csv", function(error, data) {
+  d3.csv("../MPV.csv", function(error, data) {
     if (error) throw error;
 
       // all victims where police were charged, sorted by gender, then race
@@ -70,6 +72,16 @@
 
           var gendert = JSON.stringify(gender);
           $("#gender").html(gendert)
+
+
+// list out all charges
+// var allcharges = d3.nest()
+//     .key(d => d.charges)
+//     .rollup(function(v){return v.length})
+//     .object(data)
+//
+// var allchargest = JSON.stringify(allcharges);
+// $("#chargest").html(allchargest)
 
 
   })
