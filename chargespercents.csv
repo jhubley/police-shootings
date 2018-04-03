@@ -1,0 +1,21 @@
+gender,race,count,% of total shot,num_yes_charges,% of those charged,,num_no_charges,,% difference
+Female,Asian,7,0.12%,,,,7,,
+Female,Black,63,1.06%,6,5.71%,,57,,538.23%
+Female,Hispanic,38,0.64%,3,2.86%,,35,,446.17%
+Female,Native American,7,0.12%,,,,7,,
+Female,Pacific Islander,1,0.02%,,,,1,,
+Female,Unknown race,26,0.44%,,,,26,,
+Female,White,195,3.29%,10,9.52%,,185,,289.82%
+Male,Asian,90,1.52%,1,0.95%,,89,,62.79%
+Male,Black,1502,25.31%,42,40.00%,,1460,,158.03%
+Male,Hispanic,999,16.84%,5,4.76%,,994,,28.29%
+Male,Native American,75,1.26%,4,3.81%,,71,,301.41%
+Male,Pacific Islander,25,0.42%,,,,25,,
+Male,Unknown Race,413,6.96%,,,,413,,
+Male,White,2488,41.93%,34,32.38%,,2454,,77.23%
+Transgender,Black,2,0.03%,,,,2,,
+Transgender,White,3,0.05%,,,,3,,
+,,,,,,,,,
+,,5934,,105,1.77%,(percent charged of total shot),5829,,
+,,,,,,,,,
+,,^ Missing 4 – these are the ones that have an 'unknown' or blank gender,,,,,,,

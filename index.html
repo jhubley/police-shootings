@@ -1,0 +1,389 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+html,body{
+  margin:0;
+  font-family: monospace;
+}
+body{
+  padding:30px;
+}
+.counties {
+  fill: none;
+}
+.counties path:hover{
+  fill: #FFF77D;
+}
+.states {
+  fill: none;
+  stroke: #000;
+  stroke-linejoin: round;
+}
+#points{
+	width:100%;
+	height:100%;
+	position:absolute;
+  top: 0;
+  left:0;
+	z-index:100;
+}
+.tooltip {
+  position: absolute;
+  padding: 15px;
+  font: 12px sans-serif;
+  background: #fff;
+  color: #000;
+  border: 0px;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.8;
+  visibility: hidden;
+  z-index: 101;
+}
+.tooltip2{
+  position: relative;
+  float: right;
+  font-size: 12px;
+  z-index: 10000;
+  background: #fff;
+  padding:30px;
+  margin-top:-100px;
+}
+#dotlegend{
+  position: relative;
+  clear: both;
+  height: 20px;
+}
+#dots{
+  margin-top:30px;
+  width:60%;
+  float: left;
+}
+#dots ul{
+  margin:0;
+  padding-left:15px;
+  list-style: none;
+}
+#dots ul li{
+  display: inline;
+  padding-left: 1em;
+  text-indent: -.7em;
+}
+#dots ul li.first::before{
+  background-color: #f83a20;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+}
+#dots ul li.second::before{
+  background-color: #f8c10d;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+}
+#dots ul li.third::before{
+  background-color: #1cfcff;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+}
+#dots ul li.fourth::before{
+  background-color: #fff;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+    border:1px solid #000;
+}
+#dots ul li.fifth::before{
+  background-color: #970599;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+}
+#dots ul li.sixth::before{
+  background-color: #0df834;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+}
+#dots ul li.last::before{
+  background-color: #333;
+    border-radius: 50%;
+    content: "";
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 2px;
+    height: 10px;
+    width: 10px;
+}
+h1{
+  font-family: monospace;
+  font-weight: normal;
+  margin:0px;
+}
+.hovernote,.popnote{
+  margin:0;
+  padding:0;
+  font-size: 11px;
+}
+.notea, .noteb{
+  padding:0;
+  margin:0;
+  width:65%;
+  float: left;
+}
+.notea{
+  margin-top:20px;
+}
+a{
+  color: #007CCA;
+}
+</style>
+<h1>victims of police shootings in the US</h1>
+<p class="hovernote">hover over dots to see victim information, hover over counties to see population information</p>
+<p class="popnote">population count is represented by opacity level (more transparent for fewer people)
+<svg width="960" height="600"></svg>
+<svg id="dotlegend">
+</svg>
+<div id="dots">
+  <ul>
+    <li class="first">White</li>
+    <li class="second">Black</li>
+    <li class="third">Hispanic/Latino</li>
+    <li class="fourth">Native American/Alaska Native</li>
+    <li class="fifth">Pacific Islander/Native Hawaiian</li>
+    <li class="sixth">Asian</li>
+    <li class="last">Other</li>
+  </ul>
+</div>
+<p class="notea">police shooting deaths 1/1/2013 - 3/27/2018, from the <a href="https://mappingpoliceviolence.org/">Mapping Police Violence project</a></p>
+<p class="noteb">US population data from the <a href="https://factfinder.census.gov/faces/nav/jsf/pages/index.xhtml">US Census, American FactFinder</a> 2016</p>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+<script>
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+var racea = d3.map();
+var raceb = d3.map();
+var racec = d3.map();
+var raced = d3.map();
+var racee = d3.map();
+var racef = d3.map();
+var raceg = d3.map();
+
+var county = d3.map();
+var pop = d3.map();
+
+var projection = d3.geoAlbersUsa()
+.scale([1285])
+
+.translate([width/2,height/2]); // just temporary
+
+var path = d3.geoPath()
+.projection(null);
+
+var x = d3.scaleLinear()
+    .domain([0, 100])
+    .rangeRound([600, 860]);
+
+var color = d3.scaleThreshold()
+    //.range(['#fffdd6','#ebd5b1','#d8a391','#c4737b','#b15981','#9e428c','#7b2e8a','#481e77','#1a1063','#061750','#00233d'])
+     //.range(['#fffdd6','#deebb1','#b7d891','#8bc473','#5db159','#429e53','#2e8a56','#1e775a','#10635d','#064450','#00233d'])
+
+    .range(['#fffed6','#e5e8c6','#ccd2b7','#b2bca8','#99a698','#7f9189','#667b7a','#4c656a','#334f5b','#19394c','#00243d'])
+    .domain([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+
+    d3.queue()
+        .defer(d3.json, "https://d3js.org/us-10m.v1.json")
+        .defer(d3.csv, "race.csv", function(d) {
+          racea.set(d.id, +d.white);
+          raceb.set(d.id, +d.black);
+          racec.set(d.id, +d.hispanic_latino);
+          raced.set(d.id, +d.native_american_alaskan);
+          racee.set(d.id, +d.pacific_islander);
+          racef.set(d.id, +d.asian);
+          raceg.set(d.id, +d.other_race);
+          county.set(d.id, d.county_name);
+          pop.set(d.id, d.totalpopulation);
+        })
+        .await(ready);
+
+    function ready(error, us) {
+      if (error) throw error;
+
+      svg.append("g")
+          .attr("class", "counties")
+        .selectAll("path")
+        .data(topojson.feature(us, us.objects.counties).features)
+        .enter().append("path")
+          .attr("fill", function(d) { return color(d.white = racea.get(d.id)); })
+          .attr('opacity',function(d){
+            d.pop = pop.get(d.id)
+            // popmax = 10057155 (LA county)
+            // popmin = 76 (Loving County, Texas)
+            if (d.pop >= 76 && d.pop <= 5195){return .55}
+            else if (d.pop >= 5195 && d.pop <= 9125){return .6}
+            else if (d.pop >= 9125 && d.pop <= 13842){return .65}
+            else if (d.pop >= 13842 && d.pop <= 19085){return .7}
+            else if (d.pop >= 19085 && d.pop <= 25975){return .75}
+            else if (d.pop >= 25975 && d.pop <= 36862){return .8}
+            else if (d.pop >= 36862 && d.pop <= 52185){return .85}
+            else if (d.pop >= 52185 && d.pop <= 90527){return .9}
+            else if (d.pop >= 90527 && d.pop <= 200536){return .95}
+            else if (d.pop >= 200536 && d.pop <= 10057155){return 1}
+          })
+          .attr("d", path)
+          .on("mouseover", function(d) {
+            d.county_name = county.get(d.id);
+            d.black = raceb.get(d.id)
+            d.hispanic_latino = racec.get(d.id)
+            d.native_american_alaskan = raced.get(d.id)
+            d.pacific_islander = racee.get(d.id)
+            d.asian = racef.get(d.id)
+            d.other_race = raceg.get(d.id)
+            d.pop = pop.get(d.id)
+
+            var tooltip_str2 = d.county_name + '<br/>' +
+            'total county population: ' + addCommas(+d.pop) + '<br/>' +
+            d.white + "% White<br/>" +
+            d.black + "% Black<br/>" +
+            d.hispanic_latino + "% Hispanic/Latino<br/>" +
+            d.native_american_alaskan + "% Native American/Alaska Native<br/>" +
+            d.pacific_islander + "% Pacific Islander/Native Hawaiian<br/>" +
+            d.asian + "% Asian<br/>" +
+            d.other_race + "% other race"
+
+            tooltip2.html(tooltip_str2)
+                .style("visibility", "visible");
+          })
+          .on("mouseout", function(d) {
+            points.selectAll('.month')
+                .classed('active', false)
+            tooltip2.style("visibility", "hidden");
+          })
+        var tooltip2 = d3.select("body").append("div")
+                .attr("class", "tooltip2");
+
+      svg.append("path")
+          .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+          .attr("class", "states")
+          .attr("d", path);
+    }
+
+
+
+
+    d3.csv("MPV.csv", function(error, dataset) {
+
+      var points = d3.select('svg').append('svg').attr('id','points')
+
+      points.selectAll("circle").data(dataset) //plotted 	locations on map
+    	.enter()
+    	.append("circle")
+    	.attr("cx", function(d) {return projection([d.Longitude,d.Latitude])[0]})
+    	.attr("cy", function(d) {return projection([d.Longitude,d.Latitude])[1]})
+    	.attr("class", function(d){
+        if (d.race == "Black"){return 'black'}else{return 'notblack'}
+      })
+      .attr("r",1)
+    	.style("fill", function(d){
+        if (d.race == "White") { return '#f83a20'}
+        else if (d.race == "Black") { return '#f8c10d'}
+        else if (d.race == "Hispanic") { return '#1cfcff'}
+        else if (d.race == "Native American") { return '#fff'}
+        else if (d.race == "Pacific Islander") { return '#970599'}
+        else if (d.race == "Asian") { return '#0df834'}
+        else { return '#333'}
+      })
+        .on("mouseover", function(d) {
+          var tooltip_str = d.name + ", " + d.date + '<br/>' +
+          d.race + ', ' + d.age + ', ' + d.gender + '<br/>' +
+          d.city + ', ' + d.state
+          tooltip.html(tooltip_str)
+              .style("visibility", "visible");
+        })
+        .on("mousemove", function(d) {
+          tooltip.style("top", event.pageY - (tooltip.node().clientHeight + 5) + "px")
+              .style("left", event.pageX - (tooltip.node().clientWidth / 2.0) + "px");
+        })
+        .on("mouseout", function(d) {
+          points.selectAll('.month')
+              .classed('active', false)
+          tooltip.style("visibility", "hidden");
+        })
+
+        var tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip");
+    });
+
+var g = svg.append("g")
+    .attr("class", "key")
+    .attr("transform", "translate(0,40)");
+
+g.selectAll("rect")
+  .data(color.range().map(function(d) {
+      d = color.invertExtent(d);
+      if (d[0] == null) d[0] = x.domain()[0];
+      if (d[1] == null) d[1] = x.domain()[1];
+      return d;
+    }))
+  .enter().append("rect")
+    .attr("height", 8)
+    .attr("x", function(d) { return x(d[0]); })
+    .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+    .attr("fill", function(d) { return color(d[0]); });
+
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", x.range()[0])
+    .attr("y", -6)
+    .attr("fill", "#000")
+    .attr("text-anchor", "start")
+    .attr("font-weight", "bold")
+    .text("% white people");
+
+g.call(d3.axisBottom(x)
+    .tickSize(13)
+    .tickFormat(function(x, i) { return i ? x : x + "%"; })
+    .tickValues(color.domain()))
+  .select(".domain")
+    .remove();
+
+    function addCommas(x) {
+      var parts = x.toString().split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return parts.join('.');
+    }
+
+</script>
